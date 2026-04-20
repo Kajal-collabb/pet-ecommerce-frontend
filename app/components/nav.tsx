@@ -31,7 +31,7 @@ export default function NavBar() {
     const handleChangePassword = async () => {
         const session = await AsyncStorage.getItem("user_session");
         const storedEmail = session ? JSON.parse(session).email : null;
-        
+
         if (!storedEmail) {
             Alert.alert("Error", "User email not found. Please log in again.");
             return;
@@ -96,7 +96,7 @@ export default function NavBar() {
                     <Text style={styles.actionLabel}>Change Password</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.actionButton}>
+                <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/wishlist')}>
                     <Heart size={24} color="#1a2744" />
                     <Text style={styles.actionLabel}>Wishlist</Text>
                 </TouchableOpacity>

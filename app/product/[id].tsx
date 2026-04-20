@@ -18,7 +18,8 @@ const ProductDetails = () => {
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
-
+    const [wishlisted, setWishlisted] = useState(false);
+    const [wishlistLoading, setWishlistLoading] = useState(false);
     useEffect(() => {
         fetchProductDetails();
     }, [id]);
@@ -41,7 +42,34 @@ const ProductDetails = () => {
             setLoading(false);
         }
     };
+    const toggleWishlist = async () => {
+        setWishlistLoading(true);
+        try {
+            const session = await AsyncStorage.getItem('user_session');
+            const token = session ? JSON.parse(session).token : null;
 
+            if (wishlisted) {
+                await api.delete(`/wishlist/${id}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setWishlisted(false);
+                if (Platform.OS === 'web') window.alert('Wishlist se remove ho gaya!');
+                else Alert.alert('Removed', 'Wishlist se remove ho gaya!');
+            } else {
+                await api.post(`/wishlist/${id}`, {}, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setWishlisted(true);
+                if (Platform.OS === 'web') window.alert('Wishlist mein add ho gaya!');
+                else Alert.alert('Added!', 'Wishlist mein add ho gaya!');
+            }
+        } catch (error) {
+            if (Platform.OS === 'web') window.alert('Kuch galat hua, dobara try karo');
+            else Alert.alert('Error', 'Kuch galat hua, dobara try karo');
+        } finally {
+            setWishlistLoading(false);
+        }
+    };
     if (loading) {
         return (
             <View style={styles.centerContainer}>
@@ -66,8 +94,11 @@ const ProductDetails = () => {
                     <ArrowLeft size={24} color="#1a2744" />
                 </TouchableOpacity>
                 <View style={styles.headerActions}>
-                    <TouchableOpacity style={styles.iconButton}>
-                        <Heart size={22} color="#1a2744" />
+                    <TouchableOpacity onPress={toggleWishlist} disabled={wishlistLoading}>
+                        {wishlistLoading
+                            ? <ActivityIndicator size="small" color="#dc2626" />
+                            : <Heart size={22} color="#dc2626" fill={wishlisted ? '#dc2626' : 'none'} />
+                        }
                     </TouchableOpacity>
                 </View>
             </View>
@@ -82,7 +113,7 @@ const ProductDetails = () => {
                     {/* Content */}
                     <View style={styles.content}>
                         <Text style={styles.productName}>{product.name}</Text>
-                        
+
                         {/* Rating Badge */}
                         <View style={styles.badgeContainer}>
                             <View style={styles.ratingBadge}>
@@ -104,7 +135,7 @@ const ProductDetails = () => {
                                 </View>
                             </View>
                             <Text style={styles.taxText}>incl. of all taxes calculated at checkout.</Text>
-                            
+
                             {product.stockQuantity > 0 && product.stockQuantity <= 10 && (
                                 <Text style={styles.lowStockWarning}>Only {product.stockQuantity} left in stock!</Text>
                             )}
@@ -132,14 +163,14 @@ const ProductDetails = () => {
                     {product.stockQuantity > 0 ? (
                         <>
                             <View style={styles.quantityContainer}>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     onPress={() => quantity > 1 && setQuantity(quantity - 1)}
                                     style={styles.qtyBtn}
                                 >
                                     <Minus size={18} color="#666" />
                                 </TouchableOpacity>
                                 <Text style={styles.qtyText}>{quantity}</Text>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     onPress={() => {
                                         console.log("Current Qty:", quantity, "Stock:", product.stockQuantity);
                                         if (quantity < product.stockQuantity) {
@@ -168,9 +199,9 @@ const ProductDetails = () => {
                         </View>
                     )}
                 </View>
-                
+
                 {product.stockQuantity > 0 && (
-                    <TouchableOpacity style={styles.buyNowBtn}>
+                    <TouchableOpacity style={styles.buyNowBtn} onPress={() => router.push('/address')}>
                         <Text style={styles.buyNowText}>BUY NOW</Text>
                     </TouchableOpacity>
                 )}
@@ -195,7 +226,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 15,
         paddingVertical: 10,
-        maxWidth: 1000,
+        maxWidth: 700,
         width: '100%',
         alignSelf: 'center',
     },
@@ -204,11 +235,11 @@ const styles = StyleSheet.create({
     },
     mainWrapper: {
         width: '100%',
-        maxWidth: 1000,
+        maxWidth: 700,
     },
     bottomWrapper: {
         width: '100%',
-        maxWidth: 1000,
+        maxWidth: 700,
         alignSelf: 'center',
         borderTopWidth: 1,
         borderTopColor: '#eee',
