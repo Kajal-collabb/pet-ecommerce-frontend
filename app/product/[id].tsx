@@ -189,7 +189,27 @@ const ProductDetails = () => {
                                 </TouchableOpacity>
                             </View>
 
-                            <TouchableOpacity style={styles.addCartBtn}>
+                            <TouchableOpacity 
+                                style={styles.addCartBtn} 
+                                onPress={async () => {
+                                    try {
+                                        const session = await AsyncStorage.getItem('user_session');
+                                        const token = session ? JSON.parse(session).token : null;
+                                        const res = await api.post('/bag', { productId: product.id, quantity: quantity }, {
+                                            headers: { Authorization: `Bearer ${token}` }
+                                        });
+                                        if (res.status === 200 || res.status === 201) {
+                                            if (Platform.OS === 'web') window.alert("Added to Bag!");
+                                            else Alert.alert("Success", "Added to Bag!");
+                                        }
+                                    } catch (error) {
+                                        console.error('Error adding to bag:', error);
+                                        const msg = error.response?.data?.message || "Failed to add to bag.";
+                                        if (Platform.OS === 'web') window.alert(msg);
+                                        else Alert.alert("Error", msg);
+                                    }
+                                }}
+                            >
                                 <Text style={styles.addCartText}>Add to Bag</Text>
                             </TouchableOpacity>
                         </>

@@ -101,7 +101,7 @@ export default function NavBar() {
                     <Text style={styles.actionLabel}>Wishlist</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.actionButton}>
+                <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/bag')}>
                     <ShoppingBag size={24} color="#1a2744" />
                     <Text style={styles.actionLabel}>Bag</Text>
                 </TouchableOpacity>

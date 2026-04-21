@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", padding: 16 },
-  modalWrapper: { width: "100%", maxWidth: 500 },
+  modalWrapper: { width: "100%", maxWidth: 600 },
   card: {
     backgroundColor: "#fff",
     borderRadius: 24,
@@ -286,15 +286,15 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     backgroundColor: NAVY,
-    paddingVertical: 35,
+    paddingVertical: 20,
     paddingHorizontal: 20,
     alignItems: 'center',
   },
   logoZigly: { fontSize: 32, fontWeight: "900", color: "#fff", marginBottom: 8 },
   heading: { fontSize: 24, fontWeight: "800", color: "#fff", marginBottom: 4 },
   cardSub: { fontSize: 14, color: "rgba(255,255,255,0.7)", fontWeight: '500' },
-  body: { padding: 30 },
-  loginHint: { flexDirection: 'row', justifyContent: 'center', marginBottom: 25 },
+  body: { padding: 24 },
+  loginHint: { flexDirection: 'row', justifyContent: 'center', marginBottom: 15 },
   subheading: { fontSize: 14, color: "#888" },
   linkText: { color: "#4c4a6b", fontWeight: 'bold' },
   label: { fontSize: 13, color: NAVY, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
@@ -340,6 +340,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   signupButtonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  footer: { marginTop: 25 },
+  footer: { marginTop: 15 },
   quoteText: { textAlign: 'center', fontSize: 14, color: '#c7722c', fontWeight: '500', fontStyle: 'italic' }
 });

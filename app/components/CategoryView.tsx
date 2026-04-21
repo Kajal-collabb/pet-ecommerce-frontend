@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
     View, Text, StyleSheet, FlatList, Image,
     TouchableOpacity, ActivityIndicator, SafeAreaView,
-    Dimensions, Platform, useWindowDimensions
+    Dimensions, Platform, useWindowDimensions, Alert
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Plus } from 'lucide-react-native';
@@ -15,7 +15,7 @@ const { width } = Dimensions.get('window');
 const CategoryView = ({ initialCategoryId, initialCategoryName }) => {
     const router = useRouter();
     const params = useLocalSearchParams();
-    
+
     // Use params if available, otherwise use initial props
     const categoryId = params.categoryId || initialCategoryId;
     const categoryName = params.categoryName || initialCategoryName;
@@ -114,14 +114,14 @@ const CategoryView = ({ initialCategoryId, initialCategoryName }) => {
     };
 
     const renderProductItem = ({ item, index }) => (
-        <TouchableOpacity 
+        <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => router.push(`/product/${item.id}`)}
             style={[
-                styles.productCard, 
-                { 
+                styles.productCard,
+                {
                     width: cardWidth,
-                    marginRight: (index + 1) % numColumns === 0 ? 0 : gap 
+                    marginRight: (index + 1) % numColumns === 0 ? 0 : gap
                 }
             ]}
         >
@@ -145,8 +145,27 @@ const CategoryView = ({ initialCategoryId, initialCategoryName }) => {
                             )}
                         </View>
                     </View>
-
-                    <TouchableOpacity style={styles.addButton}>
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={async (e) => {
+                            e.stopPropagation?.();
+                            try {
+                                const session = await AsyncStorage.getItem('user_session');
+                                const token = session ? JSON.parse(session).token : null;
+                                const res = await api.post('/bag', { productId: item.id, quantity: 1 }, {
+                                    headers: { Authorization: `Bearer ${token}` }
+                                });
+                                if (res.status === 200 || res.status === 201) {
+                                    if (Platform.OS === 'web') window.alert("Added to Bag!");
+                                    else Alert.alert("Success", "Added to Bag!");
+                                }
+                            } catch (error) {
+                                const msg = error.response?.data?.message || "Failed to add to bag.";
+                                if (Platform.OS === 'web') window.alert(msg);
+                                else Alert.alert("Error", msg);
+                            }
+                        }}
+                    >
                         <Plus size={20} color="#2563eb" strokeWidth={3} />
                     </TouchableOpacity>
                 </View>

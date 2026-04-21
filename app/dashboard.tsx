@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
     View, StyleSheet, SafeAreaView, Image,
     ScrollView, Dimensions, Text,
-    FlatList, ActivityIndicator, Alert, TouchableOpacity, useWindowDimensions
+    FlatList, ActivityIndicator, Alert, TouchableOpacity, useWindowDimensions, Platform
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NavBar from './components/nav';
@@ -21,6 +21,29 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [topSelling, setTopSelling] = useState([]);
     const [topSellingLoading, setTopSellingLoading] = useState(true);
+    const [addingToBagId, setAddingToBagId] = useState(null);
+
+    const addToBag = async (productId) => {
+        setAddingToBagId(productId);
+        try {
+            const session = await AsyncStorage.getItem("user_session");
+            const token = session ? JSON.parse(session).token : null;
+            const res = await api.post('/bag', { productId, quantity: 1 }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.status === 200 || res.status === 201) {
+                if (Platform.OS === 'web') window.alert("Added to Bag!");
+                else Alert.alert("Success", "Added to Bag!");
+            }
+        } catch (error) {
+            console.error('Error adding to bag:', error);
+            const msg = error.response?.data?.message || "Failed to add to bag.";
+            if (Platform.OS === 'web') window.alert(msg);
+            else Alert.alert("Error", msg);
+        } finally {
+            setAddingToBagId(null);
+        }
+    };
 
     useEffect(() => {
         fetchCategories();
@@ -149,8 +172,16 @@ export default function DashboardPage() {
                     </View>
                 </View>
 
-                <TouchableOpacity style={styles.addCartBtn}>
-                    <Text style={styles.addCartText}>Add to Bag</Text>
+                <TouchableOpacity 
+                    style={styles.addCartBtn} 
+                    onPress={() => addToBag(item.id)}
+                    disabled={addingToBagId === item.id}
+                >
+                    {addingToBagId === item.id ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                        <Text style={styles.addCartText}>Add to Bag</Text>
+                    )}
                 </TouchableOpacity>
             </View>
         </TouchableOpacity>

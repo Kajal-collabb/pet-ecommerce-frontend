@@ -19,6 +19,7 @@ export default function WishlistScreen() {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [removingId, setRemovingId] = useState(null);
+    const [addingToBagId, setAddingToBagId] = useState(null);
 
     useEffect(() => {
         fetchWishlist();
@@ -44,20 +45,52 @@ export default function WishlistScreen() {
     };
 
     const removeItem = async (Id) => {
-        console.log('Remove karne ki koshish:', Id);
-        setRemovingId(Id);
+        const confirm = async () => {
+            console.log('Remove karne ki koshish:', Id);
+            setRemovingId(Id);
+            try {
+                const token = await getToken();
+                console.log('Token:', token);
+                const res = await api.delete(`/wishlist/${Id}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                console.log('Delete response:', res.status);
+                setItems(prev => prev.filter(item => item.id !== Id));
+            } catch (error) {
+                console.log('Delete error:', error.response?.status, error.response?.data);
+            } finally {
+                setRemovingId(null);
+            }
+        };
+
+        if (Platform.OS === 'web') {
+            if (window.confirm('Remove this item from wishlist?')) confirm();
+        } else {
+            Alert.alert('Remove Item', 'Remove this item from wishlist?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Remove', style: 'destructive', onPress: confirm }
+            ]);
+        }
+    };
+
+    const addToBag = async (productId) => {
+        setAddingToBagId(productId);
         try {
             const token = await getToken();
-            console.log('Token:', token);
-            const res = await api.delete(`/wishlist/${Id}`, {
+            const res = await api.post('/bag', { productId, quantity: 1 }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            console.log('Delete response:', res.status);
-            setItems(prev => prev.filter(item => item.id !== Id));
+            if (res.status === 200 || res.status === 201) {
+                if (Platform.OS === 'web') window.alert("Added to Bag!");
+                else Alert.alert("Success", "Added to Bag!");
+            }
         } catch (error) {
-            console.log('Delete error:', error.response?.status, error.response?.data);
+            console.error('Error adding to bag:', error);
+            const msg = error.response?.data?.message || "Failed to add to bag.";
+            if (Platform.OS === 'web') window.alert(msg);
+            else Alert.alert("Error", msg);
         } finally {
-            setRemovingId(null);
+            setAddingToBagId(null);
         }
     };
 
@@ -156,9 +189,19 @@ export default function WishlistScreen() {
 
                                     {/* Buttons */}
                                     <View style={styles.btnRow}>
-                                        <TouchableOpacity style={styles.addCartBtn}>
-                                            <ShoppingBag size={16} color="#fff" />
-                                            <Text style={styles.addCartText}>Add to Bag</Text>
+                                        <TouchableOpacity 
+                                            style={styles.addCartBtn} 
+                                            onPress={() => addToBag(item.productId)}
+                                            disabled={addingToBagId === item.productId}
+                                        >
+                                            {addingToBagId === item.productId ? (
+                                                <ActivityIndicator size="small" color="#fff" />
+                                            ) : (
+                                                <>
+                                                    <ShoppingBag size={16} color="#fff" />
+                                                    <Text style={styles.addCartText}>Add to Bag</Text>
+                                                </>
+                                            )}
                                         </TouchableOpacity>
 
                                         <TouchableOpacity
