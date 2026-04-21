@@ -164,7 +164,10 @@ export default function AddressScreen() {
 
                         {/* Continue Button */}
                         {selectedId && (
-                            <TouchableOpacity style={styles.continueBtn} onPress={() => router.push('/checkout')}>
+                            <TouchableOpacity style={styles.continueBtn} onPress={async () => {
+                                await AsyncStorage.setItem('selectedAddressId', selectedId.toString());
+                                router.push('/checkout');
+                            }}>
                                 <Check size={18} color="#fff" style={{ marginRight: 8 }} />
                                 <Text style={styles.continueBtnText}>Continue with this Address</Text>
                             </TouchableOpacity>

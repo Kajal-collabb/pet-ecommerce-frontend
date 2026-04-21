@@ -201,7 +201,17 @@ const ProductDetails = () => {
                 </View>
 
                 {product.stockQuantity > 0 && (
-                    <TouchableOpacity style={styles.buyNowBtn} onPress={() => router.push('/address')}>
+                    <TouchableOpacity style={styles.buyNowBtn} onPress={async () => {
+                        const itemToBuy = [{
+                            productId: product.id,
+                            productName: product.name,
+                            productImage: product.photoUrl,
+                            price: product.price,
+                            quantity: quantity
+                        }];
+                        await AsyncStorage.setItem('checkoutItems', JSON.stringify(itemToBuy));
+                        router.push('/address');
+                    }}>
                         <Text style={styles.buyNowText}>BUY NOW</Text>
                     </TouchableOpacity>
                 )}

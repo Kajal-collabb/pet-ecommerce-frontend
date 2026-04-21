@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
     View, Text, StyleSheet, FlatList, Image,
     TouchableOpacity, ActivityIndicator, SafeAreaView,
-    Dimensions, Platform
+    Dimensions, Platform, useWindowDimensions
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Plus } from 'lucide-react-native';
@@ -26,11 +26,13 @@ const CategoryView = ({ initialCategoryId, initialCategoryName }) => {
     const [loading, setLoading] = useState(true);
     const [productsLoading, setProductsLoading] = useState(false);
 
-    // Force 5 columns and calculate width with fixed gaps
-    const numColumns = 5;
-    const sidebarWidth = 170;
+    const { width: windowWidth } = useWindowDimensions();
+    const isMobile = windowWidth < 768;
+
+    const numColumns = isMobile ? 2 : 5;
+    const sidebarWidth = isMobile ? 0 : 170;
     const gap = 12;
-    const availableWidth = width - sidebarWidth - 20; // 20 is horizontal padding
+    const availableWidth = windowWidth - sidebarWidth - (isMobile ? 30 : 20);
     const cardWidth = (availableWidth - (numColumns - 1) * gap) / numColumns;
 
     useEffect(() => {
@@ -93,11 +95,12 @@ const CategoryView = ({ initialCategoryId, initialCategoryName }) => {
         const isActive = selectedSubId === item.id;
         return (
             <TouchableOpacity
-                style={[styles.sidebarItem, isActive && styles.sidebarItemActive]}
+                style={[styles.sidebarItem, isMobile && styles.sidebarItemMobile, isActive && styles.sidebarItemActive]}
                 onPress={() => handleSubCategoryPress(item.id)}
             >
-                {isActive && <View style={styles.activeIndicator} />}
-                <View style={styles.sidebarIconContainer}>
+                {isActive && !isMobile && <View style={styles.activeIndicator} />}
+                {isActive && isMobile && <View style={styles.activeIndicatorMobile} />}
+                <View style={[styles.sidebarIconContainer, isMobile && styles.sidebarIconContainerMobile]}>
                     <Image
                         source={{ uri: item.photoUrl || 'https://via.placeholder.com/50' }}
                         style={styles.sidebarIcon}
@@ -172,9 +175,9 @@ const CategoryView = ({ initialCategoryId, initialCategoryName }) => {
                 </View>
             </View>
 
-            <View style={styles.content}>
+            <View style={[styles.content, isMobile && { flexDirection: 'column' }]}>
                 {/* Sidebar */}
-                <View style={styles.sidebar}>
+                <View style={[styles.sidebar, isMobile && styles.sidebarMobile]}>
                     <FlatList
                         data={[
                             {
@@ -186,7 +189,9 @@ const CategoryView = ({ initialCategoryId, initialCategoryName }) => {
                         ]}
                         renderItem={renderSidebarItem}
                         keyExtractor={(item) => (item.id === null ? 'all' : item.id.toString())}
-                        showsVerticalScrollIndicator={false}
+                        showsVerticalScrollIndicator={!isMobile}
+                        showsHorizontalScrollIndicator={false}
+                        horizontal={isMobile}
                     />
                 </View>
 
@@ -262,11 +267,23 @@ const styles = StyleSheet.create({
         borderRightWidth: 1,
         borderRightColor: '#f0f0f0',
     },
+    sidebarMobile: {
+        width: '100%',
+        borderRightWidth: 0,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+        backgroundColor: '#fff',
+    },
     sidebarItem: {
         paddingVertical: 15,
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
+    },
+    sidebarItemMobile: {
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        borderBottomWidth: 0,
     },
     sidebarItemActive: {
         backgroundColor: '#fff',
@@ -280,6 +297,16 @@ const styles = StyleSheet.create({
         backgroundColor: '#cf1313',
         borderTopRightRadius: 4,
         borderBottomRightRadius: 4,
+    },
+    activeIndicatorMobile: {
+        position: 'absolute',
+        bottom: 0,
+        left: 15,
+        right: 15,
+        height: 3,
+        backgroundColor: '#cf1313',
+        borderTopLeftRadius: 4,
+        borderTopRightRadius: 4,
     },
     sidebarIconContainer: {
         width: 80,
@@ -300,6 +327,12 @@ const styles = StyleSheet.create({
                 elevation: 2,
             },
         }),
+    },
+    sidebarIconContainerMobile: {
+        width: 60,
+        height: 60,
+        borderRadius: 12,
+        marginBottom: 4,
     },
     sidebarIcon: {
         width: 70,

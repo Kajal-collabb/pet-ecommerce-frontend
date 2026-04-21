@@ -12,6 +12,7 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
+  useWindowDimensions,
 } from "react-native";
 import { Eye, EyeOff } from 'lucide-react-native'; // ← Add this
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -22,6 +23,9 @@ import OTPModal from "./OTPModal";
 import ResetPasswordModal from "./ResetPasswordModal";
 
 export default function LoginScreen() {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+
   const router = useRouter(); // ← Initialize router
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -152,16 +156,18 @@ export default function LoginScreen() {
           >
             <View style={styles.modal}>
               {/* left panel */}
-              <View style={styles.leftPanel}>
-                <Image source={require('../assets/mm.png')} style={styles.petImage} resizeMode="cover" />
-                <View style={styles.leftOverlay}>
-                  <Text style={styles.leftTitle}>Welcome back</Text>
-                  <Text style={styles.leftSub}>Your pet's health, simplified</Text>
+              {!isMobile && (
+                <View style={styles.leftPanel}>
+                  <Image source={require('../assets/mm.png')} style={styles.petImage} resizeMode="cover" />
+                  <View style={styles.leftOverlay}>
+                    <Text style={styles.leftTitle}>Welcome back</Text>
+                    <Text style={styles.leftSub}>Your pet's health, simplified</Text>
+                  </View>
                 </View>
-              </View>
+              )}
 
               {/* right panel */}
-              <View style={styles.rightPanel}>
+              <View style={[styles.rightPanel, isMobile && { padding: 25 }]}>
                 <View style={styles.formHeader}>
                   <Text style={styles.logoZigly}>Care<Text style={{ color: '#cf1313' }}>Tail</Text></Text>
                   <Text style={styles.heading}>Welcome Back</Text>

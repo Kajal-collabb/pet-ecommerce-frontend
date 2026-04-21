@@ -12,6 +12,7 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
+  useWindowDimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -20,6 +21,9 @@ import OTPModal from "./OTPModal";
 import { Eye, EyeOff } from 'lucide-react-native';
 
 export default function SignupScreen({ onBackToLogin }) {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -180,8 +184,8 @@ export default function SignupScreen({ onBackToLogin }) {
                 autoCapitalize="none"
               />
 
-              <View style={s.row}>
-                <View style={{ flex: 1, marginRight: 10 }}>
+              <View style={isMobile ? null : s.row}>
+                <View style={isMobile ? null : { flex: 1, marginRight: 10 }}>
                   <Text style={styles.label}>Password</Text>
                   <View style={styles.passwordContainer}>
                     <TextInput
@@ -196,7 +200,7 @@ export default function SignupScreen({ onBackToLogin }) {
                     </TouchableOpacity>
                   </View>
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={isMobile ? null : { flex: 1 }}>
                   <Text style={styles.label}>Confirm</Text>
                   <View style={styles.passwordContainer}>
                     <TextInput

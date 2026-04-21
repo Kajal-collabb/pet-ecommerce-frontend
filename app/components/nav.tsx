@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Search, Heart, ShoppingBag, User, LogOut } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -7,8 +7,8 @@ import ResetPasswordModal from '../ResetPasswordModal';
 
 export default function NavBar() {
     const router = useRouter();
-    const [showReset, setShowReset] = React.useState(false);
-    const [email, setEmail] = React.useState("");
+    const [showReset, setShowReset] = useState(false);
+    const [email, setEmail] = useState("");
 
     const performLogout = async () => {
         try {
@@ -136,6 +136,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 15,
         backgroundColor: '#fff',
+        borderTopWidth: 20,
+        borderTopColor: '#0a3083ff',
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
         // Elevation for shadow on Android

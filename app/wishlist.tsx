@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, Image, ScrollView,
-    TouchableOpacity, ActivityIndicator, SafeAreaView, Alert, Platform
+    TouchableOpacity, ActivityIndicator, SafeAreaView, Alert, Platform, useWindowDimensions
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Heart, Trash2, ShoppingBag } from 'lucide-react-native';
@@ -12,6 +12,9 @@ const NAVY = '#1a2744';
 const RED = '#dc2626';
 
 export default function WishlistScreen() {
+    const { width } = useWindowDimensions();
+    const isMobile = width < 768;
+
     const router = useRouter();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -120,7 +123,7 @@ export default function WishlistScreen() {
             ) : (
                 <ScrollView showsVerticalScrollIndicator={false}>
                     <View style={styles.pageContainer}>
-                        <View style={styles.mainBox}>
+                        <View style={[styles.mainBox, isMobile && { padding: 12 }]}>
                             <View style={styles.boxHeader}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                     <Heart size={20} color={RED} fill={RED} style={{ marginRight: 8 }} />
@@ -134,7 +137,7 @@ export default function WishlistScreen() {
 
                                     {/* Product Image */}
                                 <TouchableOpacity onPress={() => router.push(`/products/${item.productId}`)}>
-                                    <Image source={{ uri: item.productImage }} style={styles.productImg} />
+                                    <Image source={{ uri: item.productImage }} style={[styles.productImg, isMobile && { width: 90, height: 90, marginRight: 12 }]} />
                                 </TouchableOpacity>
 
                                 {/* Product Info */}
