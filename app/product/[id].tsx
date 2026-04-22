@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
     View, Text, StyleSheet, Image, ScrollView,
     TouchableOpacity, ActivityIndicator, SafeAreaView,
-    Dimensions, TextInput, Alert, Platform
+    Dimensions, TextInput, Alert, Platform, StatusBar
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Heart, Plus, Minus, MapPin, Truck, Star } from 'lucide-react-native';
@@ -53,19 +53,19 @@ const ProductDetails = () => {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setWishlisted(false);
-                if (Platform.OS === 'web') window.alert('Wishlist se remove ho gaya!');
-                else Alert.alert('Removed', 'Wishlist se remove ho gaya!');
+                if (Platform.OS === 'web') window.alert('Removed from Wishlist!');
+                else Alert.alert('Removed', 'Removed from Wishlist!');
             } else {
                 await api.post(`/wishlist/${id}`, {}, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setWishlisted(true);
-                if (Platform.OS === 'web') window.alert('Wishlist mein add ho gaya!');
-                else Alert.alert('Added!', 'Wishlist mein add ho gaya!');
+                if (Platform.OS === 'web') window.alert('Added in Wishlist!');
+                else Alert.alert('Added!', 'Added in Wishlist!');
             }
         } catch (error) {
-            if (Platform.OS === 'web') window.alert('Kuch galat hua, dobara try karo');
-            else Alert.alert('Error', 'Kuch galat hua, dobara try karo');
+            if (Platform.OS === 'web') window.alert('Some error occured, please try again later');
+            else Alert.alert('Error', 'Some error occured, please try again later');
         } finally {
             setWishlistLoading(false);
         }
@@ -89,7 +89,14 @@ const ProductDetails = () => {
     return (
         <SafeAreaView style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[
+                styles.header,
+                {
+                    paddingTop: Platform.OS === 'android'
+                        ? StatusBar.currentHeight
+                        : 20   // iOS ke liye thoda space
+                }
+            ]}>
                 <TouchableOpacity onPress={() => router.back()}>
                     <ArrowLeft size={24} color="#1a2744" />
                 </TouchableOpacity>
@@ -189,8 +196,8 @@ const ProductDetails = () => {
                                 </TouchableOpacity>
                             </View>
 
-                            <TouchableOpacity 
-                                style={styles.addCartBtn} 
+                            <TouchableOpacity
+                                style={styles.addCartBtn}
                                 onPress={async () => {
                                     try {
                                         const session = await AsyncStorage.getItem('user_session');
@@ -255,7 +262,8 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 15,
-        paddingVertical: 10,
+        paddingTop: 10,
+        paddingBottom: 10,
         maxWidth: 700,
         width: '100%',
         alignSelf: 'center',

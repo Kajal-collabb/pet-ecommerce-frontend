@@ -99,7 +99,7 @@ export default function CheckoutScreen() {
     // Calculations
     const itemTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     let discountAmount = 0;
-    
+
     if (selectedCoupon && itemTotal >= selectedCoupon.minAmount) {
         // Applying percentage discount as per the example given by user
         discountAmount = (itemTotal * selectedCoupon.discount) / 100;
@@ -139,7 +139,7 @@ export default function CheckoutScreen() {
         setLoading(true);
         try {
             const token = await getToken();
-            
+
             if (!addressId) {
                 showAlert("Error", "Please select a delivery address.");
                 setLoading(false);
@@ -163,11 +163,11 @@ export default function CheckoutScreen() {
 
             if (response.status === 200 || response.status === 201) {
                 const orderData = response.data;
-                
+
                 if (paymentMode === 'COD') {
                     showAlert("Success", "Order placed successfully!");
                     router.push('/dashboard');
-                } else {
+                } if (paymentMode === 'ONLINE') {
                     // Online Razorpay Flow
                     await initiateRazorpayPayment(orderData.id);
                 }
@@ -179,33 +179,77 @@ export default function CheckoutScreen() {
         }
     };
 
+
+
     const initiateRazorpayPayment = async (orderId) => {
         try {
+            // A. Load the script for Chrome
+            const isLoaded = await loadRazorpayScript();
+            if (!isLoaded) {
+                showAlert("Error", "Razorpay SDK failed to load. Are you online?");
+                setLoading(false);
+                return;
+            }
+
             const token = await getToken();
-            // Create payment intent on backend
+
+            // B. Get the keys and orderId from your Spring Boot backend
             const createPaymentRes = await api.post(`/payment/create/${orderId}`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            
-            const rzpDetails = createPaymentRes.data; 
-            
-            // NOTE: Here you would integrate actual 'react-native-razorpay' SDK.
-            // For now, we simulate a successful SDK callback payload for the UI.
-            setTimeout(() => {
-                const mockSdkResponse = {
-                    razorpay_order_id: rzpDetails.id || "order_mock_id",
-                    razorpay_payment_id: "pay_mock_id",
-                    razorpay_signature: "sig_mock_hash"
-                };
-                verifyPayment(mockSdkResponse);
-            }, 1500);
-            
+
+            const rzpDetails = createPaymentRes.data;
+
+            // C. Configure the Web Popup
+            const options = {
+                key: rzpDetails.key,
+                amount: rzpDetails.amount,
+                currency: "INR",
+                name: "careTail",
+                description: "Order Payment",
+                order_id: rzpDetails.razorpayOrderId,
+                handler: function (response) {
+                    // This triggers when the user finishes payment in the popup
+                    verifyPayment({
+                        razorpayOrderId: response.razorpay_order_id,
+                        razorpayPaymentId: response.razorpay_payment_id,
+                        razorpaySignature: response.razorpay_signature,
+                        orderId: orderId
+                    });
+                },
+                prefill: {
+                    name: selectedAddress?.fullName || "User",
+                    contact: selectedAddress?.phoneNumber || ""
+                },
+                theme: { color: RED }, // Uses your RED constant
+                modal: {
+                    ondismiss: () => setLoading(false)
+                }
+            };
+
+            // D. Open the window
+            const rzp = new window.Razorpay(options);
+            rzp.open();
+
         } catch (error) {
+            console.error("Payment Error:", error);
             setLoading(false);
-            showAlert("Error", "Failed to initiate payment gateway.");
+            showAlert("Error", "Could not initiate payment.");
         }
     };
-
+    const loadRazorpayScript = () => {
+        return new Promise((resolve) => {
+            if (window.Razorpay) {
+                resolve(true); // Already loaded
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
     const verifyPayment = async (paymentData) => {
         try {
             const token = await getToken();
@@ -213,7 +257,7 @@ export default function CheckoutScreen() {
             const response = await api.post('/payment/verify', paymentData, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            
+
             if (response.status === 200) {
                 showAlert("Payment Successful", "Your order has been confirmed!");
                 router.push('/dashboard');
@@ -245,213 +289,213 @@ export default function CheckoutScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.pageContainer}>
-                {/* 1. Address Section */}
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.row}>
-                            <MapPin size={20} color={NAVY} />
-                            <Text style={styles.cardTitle}>Delivery Address</Text>
+                    {/* 1. Address Section */}
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.row}>
+                                <MapPin size={20} color={NAVY} />
+                                <Text style={styles.cardTitle}>Delivery Address</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => router.push('/address')}>
+                                <Text style={styles.changeText}>Change</Text>
+                            </TouchableOpacity>
                         </View>
-                        <TouchableOpacity onPress={() => router.push('/address')}>
-                            <Text style={styles.changeText}>Change</Text>
+
+                        {selectedAddress ? (
+                            <View style={styles.addressBox}>
+                                <Text style={styles.addressName}>{selectedAddress.fullName}</Text>
+                                <Text style={styles.addressText}>{selectedAddress.addressLine1}</Text>
+                                <Text style={styles.addressText}>{selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}</Text>
+                                <Text style={styles.addressPhone}>+91 {selectedAddress.phoneNumber}</Text>
+                            </View>
+                        ) : (
+                            <View style={[styles.addressBox, { justifyContent: 'center', alignItems: 'center', paddingVertical: 24 }]}>
+                                <Text style={styles.addressText}>No address selected.</Text>
+                                <TouchableOpacity onPress={() => router.push('/address')} style={{ marginTop: 8 }}>
+                                    <Text style={styles.changeText}>Add/Select Address</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* 2. Order Summary Section */}
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.row}>
+                                <ShoppingBag size={20} color={NAVY} />
+                                <Text style={styles.cardTitle}>Order Summary</Text>
+                            </View>
+                            <Text style={styles.itemsCountText}>{items.length} Items</Text>
+                        </View>
+
+                        {items.map((item, index) => (
+                            <View key={index} style={[styles.itemRow, index === items.length - 1 && { borderBottomWidth: 0 }]}>
+                                <Image source={{ uri: item.productImage }} style={styles.itemImage} />
+                                <View style={styles.itemDetails}>
+                                    <Text style={styles.itemName} numberOfLines={2}>{item.productName}</Text>
+                                    <View style={styles.itemMetaRow}>
+                                        <Text style={styles.itemQty}>Qty: {item.quantity}</Text>
+                                        <Text style={styles.itemPrice}>₹{item.price}</Text>
+                                    </View>
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+
+                    {/* 3. Coupon Section */}
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.row}>
+                                <Tag size={20} color={NAVY} />
+                                <Text style={styles.cardTitle}>Apply Coupon</Text>
+                            </View>
+                        </View>
+
+                        {selectedCoupon ? (
+                            <View style={styles.appliedCouponBox}>
+                                <View style={styles.row}>
+                                    <CheckCircle size={24} color={GREEN} />
+                                    <View style={{ marginLeft: 12 }}>
+                                        <Text style={styles.appliedCouponText}>'{selectedCoupon.code}' applied</Text>
+                                        <Text style={styles.savingText}>You saved ₹{discountAmount.toFixed(2)}</Text>
+                                    </View>
+                                </View>
+                                <TouchableOpacity onPress={handleRemoveCoupon} style={styles.removeBtn}>
+                                    <Text style={styles.removeCouponText}>Remove</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <View style={styles.couponInputBox}>
+                                <TextInput
+                                    style={styles.couponInput}
+                                    placeholder="Enter coupon code"
+                                    placeholderTextColor="#94a3b8"
+                                    value={couponCode}
+                                    onChangeText={setCouponCode}
+                                    autoCapitalize="characters"
+                                />
+                                <TouchableOpacity
+                                    style={[styles.applyBtn, !couponCode.trim() && styles.applyBtnDisabled]}
+                                    onPress={handleApplyCouponText}
+                                    disabled={!couponCode.trim()}
+                                >
+                                    <Text style={styles.applyBtnText}>APPLY</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {/* Available Coupons List */}
+                        {!selectedCoupon && coupons.length > 0 && (
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.couponsList}>
+                                {coupons.map(c => (
+                                    <TouchableOpacity
+                                        key={c.id}
+                                        style={styles.miniCoupon}
+                                        onPress={() => applyCoupon(c)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={styles.miniCouponCode}>{c.code}</Text>
+                                        <Text style={styles.miniCouponDesc}>Save {c.discount}% on orders above ₹{c.minAmount}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        )}
+                    </View>
+
+                    {/* 4. Payment Options Section */}
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.row}>
+                                <CreditCard size={20} color={NAVY} />
+                                <Text style={styles.cardTitle}>Payment Method</Text>
+                            </View>
+                        </View>
+
+                        <TouchableOpacity
+                            style={[styles.paymentOption, paymentMode === 'ONLINE' && styles.paymentOptionSelected]}
+                            onPress={() => setPaymentMode('ONLINE')}
+                            activeOpacity={0.8}
+                        >
+                            <View style={styles.row}>
+                                <View style={[styles.radioOut, paymentMode === 'ONLINE' && styles.radioOutSelected]}>
+                                    {paymentMode === 'ONLINE' && <View style={styles.radioIn} />}
+                                </View>
+                                <View>
+                                    <Text style={styles.paymentText}>Pay Online</Text>
+                                    <Text style={styles.paymentSub}>UPI, Cards, NetBanking, Wallets</Text>
+                                </View>
+                            </View>
+                            <ShieldCheck size={24} color={GREEN} />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.paymentOption, paymentMode === 'COD' && styles.paymentOptionSelected, { marginBottom: 0 }]}
+                            onPress={() => setPaymentMode('COD')}
+                            activeOpacity={0.8}
+                        >
+                            <View style={styles.row}>
+                                <View style={[styles.radioOut, paymentMode === 'COD' && styles.radioOutSelected]}>
+                                    {paymentMode === 'COD' && <View style={styles.radioIn} />}
+                                </View>
+                                <View>
+                                    <Text style={styles.paymentText}>Cash on Delivery</Text>
+                                    <Text style={styles.paymentSub}>Pay at your doorstep</Text>
+                                </View>
+                            </View>
+                            <Truck size={24} color="#64748b" />
                         </TouchableOpacity>
                     </View>
-                    
-                    {selectedAddress ? (
-                        <View style={styles.addressBox}>
-                            <Text style={styles.addressName}>{selectedAddress.fullName}</Text>
-                            <Text style={styles.addressText}>{selectedAddress.addressLine1}</Text>
-                            <Text style={styles.addressText}>{selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}</Text>
-                            <Text style={styles.addressPhone}>+91 {selectedAddress.phoneNumber}</Text>
-                        </View>
-                    ) : (
-                        <View style={[styles.addressBox, { justifyContent: 'center', alignItems: 'center', paddingVertical: 24 }]}>
-                            <Text style={styles.addressText}>No address selected.</Text>
-                            <TouchableOpacity onPress={() => router.push('/address')} style={{ marginTop: 8 }}>
-                                <Text style={styles.changeText}>Add/Select Address</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                </View>
 
-                {/* 2. Order Summary Section */}
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.row}>
-                            <ShoppingBag size={20} color={NAVY} />
-                            <Text style={styles.cardTitle}>Order Summary</Text>
-                        </View>
-                        <Text style={styles.itemsCountText}>{items.length} Items</Text>
-                    </View>
+                    {/* 5. Price Details Section */}
+                    <View style={styles.card}>
+                        <Text style={[styles.cardTitle, { marginBottom: 16, marginLeft: 0 }]}>Price Details</Text>
 
-                    {items.map((item, index) => (
-                        <View key={index} style={[styles.itemRow, index === items.length - 1 && { borderBottomWidth: 0 }]}>
-                            <Image source={{ uri: item.productImage }} style={styles.itemImage} />
-                            <View style={styles.itemDetails}>
-                                <Text style={styles.itemName} numberOfLines={2}>{item.productName}</Text>
-                                <View style={styles.itemMetaRow}>
-                                    <Text style={styles.itemQty}>Qty: {item.quantity}</Text>
-                                    <Text style={styles.itemPrice}>₹{item.price}</Text>
-                                </View>
-                            </View>
-                        </View>
-                    ))}
-                </View>
-
-                {/* 3. Coupon Section */}
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.row}>
-                            <Tag size={20} color={NAVY} />
-                            <Text style={styles.cardTitle}>Apply Coupon</Text>
-                        </View>
-                    </View>
-
-                    {selectedCoupon ? (
-                        <View style={styles.appliedCouponBox}>
-                            <View style={styles.row}>
-                                <CheckCircle size={24} color={GREEN} />
-                                <View style={{ marginLeft: 12 }}>
-                                    <Text style={styles.appliedCouponText}>'{selectedCoupon.code}' applied</Text>
-                                    <Text style={styles.savingText}>You saved ₹{discountAmount.toFixed(2)}</Text>
-                                </View>
-                            </View>
-                            <TouchableOpacity onPress={handleRemoveCoupon} style={styles.removeBtn}>
-                                <Text style={styles.removeCouponText}>Remove</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <View style={styles.couponInputBox}>
-                            <TextInput 
-                                style={styles.couponInput}
-                                placeholder="Enter coupon code"
-                                placeholderTextColor="#94a3b8"
-                                value={couponCode}
-                                onChangeText={setCouponCode}
-                                autoCapitalize="characters"
-                            />
-                            <TouchableOpacity 
-                                style={[styles.applyBtn, !couponCode.trim() && styles.applyBtnDisabled]} 
-                                onPress={handleApplyCouponText}
-                                disabled={!couponCode.trim()}
-                            >
-                                <Text style={styles.applyBtnText}>APPLY</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-
-                    {/* Available Coupons List */}
-                    {!selectedCoupon && coupons.length > 0 && (
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.couponsList}>
-                            {coupons.map(c => (
-                                <TouchableOpacity 
-                                    key={c.id} 
-                                    style={styles.miniCoupon} 
-                                    onPress={() => applyCoupon(c)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text style={styles.miniCouponCode}>{c.code}</Text>
-                                    <Text style={styles.miniCouponDesc}>Save {c.discount}% on orders above ₹{c.minAmount}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                    )}
-                </View>
-
-                {/* 4. Payment Options Section */}
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.row}>
-                            <CreditCard size={20} color={NAVY} />
-                            <Text style={styles.cardTitle}>Payment Method</Text>
-                        </View>
-                    </View>
-                    
-                    <TouchableOpacity 
-                        style={[styles.paymentOption, paymentMode === 'ONLINE' && styles.paymentOptionSelected]} 
-                        onPress={() => setPaymentMode('ONLINE')}
-                        activeOpacity={0.8}
-                    >
-                        <View style={styles.row}>
-                            <View style={[styles.radioOut, paymentMode === 'ONLINE' && styles.radioOutSelected]}>
-                                {paymentMode === 'ONLINE' && <View style={styles.radioIn} />}
-                            </View>
-                            <View>
-                                <Text style={styles.paymentText}>Pay Online</Text>
-                                <Text style={styles.paymentSub}>UPI, Cards, NetBanking, Wallets</Text>
-                            </View>
-                        </View>
-                        <ShieldCheck size={24} color={GREEN} />
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                        style={[styles.paymentOption, paymentMode === 'COD' && styles.paymentOptionSelected, { marginBottom: 0 }]} 
-                        onPress={() => setPaymentMode('COD')}
-                        activeOpacity={0.8}
-                    >
-                        <View style={styles.row}>
-                            <View style={[styles.radioOut, paymentMode === 'COD' && styles.radioOutSelected]}>
-                                {paymentMode === 'COD' && <View style={styles.radioIn} />}
-                            </View>
-                            <View>
-                                <Text style={styles.paymentText}>Cash on Delivery</Text>
-                                <Text style={styles.paymentSub}>Pay at your doorstep</Text>
-                            </View>
-                        </View>
-                        <Truck size={24} color="#64748b" />
-                    </TouchableOpacity>
-                </View>
-
-                {/* 5. Price Details Section */}
-                <View style={styles.card}>
-                    <Text style={[styles.cardTitle, { marginBottom: 16, marginLeft: 0 }]}>Price Details</Text>
-                    
-                    <View style={styles.priceRow}>
-                        <Text style={styles.priceLabel}>Item Total</Text>
-                        <Text style={styles.priceValue}>₹{itemTotal.toFixed(2)}</Text>
-                    </View>
-                    
-                    {discountAmount > 0 && (
                         <View style={styles.priceRow}>
-                            <Text style={styles.priceLabel}>Coupon Discount</Text>
-                            <Text style={styles.priceValueDiscount}>- ₹{discountAmount.toFixed(2)}</Text>
+                            <Text style={styles.priceLabel}>Item Total</Text>
+                            <Text style={styles.priceValue}>₹{itemTotal.toFixed(2)}</Text>
                         </View>
-                    )}
-                    
-                    <View style={styles.priceRow}>
-                        <Text style={styles.priceLabel}>Delivery Fee</Text>
-                        <Text style={styles.priceValueFree}>FREE</Text>
-                    </View>
-                    
-                    <View style={styles.divider} />
-                    
-                    <View style={styles.priceRow}>
-                        <Text style={styles.grandTotalLabel}>Grand Total</Text>
-                        <Text style={styles.grandTotalValue}>₹{finalAmount.toFixed(2)}</Text>
-                    </View>
-                </View>
 
-                {/* Checkout Action Card */}
-                <View style={styles.checkoutActionCard}>
-                    <View style={styles.bottomBarInfo}>
-                        <Text style={styles.bottomTotalLabel}>Total Amount</Text>
-                        <Text style={styles.bottomTotalValue}>₹{finalAmount.toFixed(2)}</Text>
-                    </View>
-                    <TouchableOpacity 
-                        style={styles.placeOrderBtn} 
-                        onPress={handlePlaceOrder} 
-                        disabled={loading}
-                        activeOpacity={0.85}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.placeOrderBtnText}>
-                                {paymentMode === 'ONLINE' ? 'Pay Now' : 'Place Order'}
-                            </Text>
+                        {discountAmount > 0 && (
+                            <View style={styles.priceRow}>
+                                <Text style={styles.priceLabel}>Coupon Discount</Text>
+                                <Text style={styles.priceValueDiscount}>- ₹{discountAmount.toFixed(2)}</Text>
+                            </View>
                         )}
-                    </TouchableOpacity>
-                </View>
+
+                        <View style={styles.priceRow}>
+                            <Text style={styles.priceLabel}>Delivery Fee</Text>
+                            <Text style={styles.priceValueFree}>FREE</Text>
+                        </View>
+
+                        <View style={styles.divider} />
+
+                        <View style={styles.priceRow}>
+                            <Text style={styles.grandTotalLabel}>Grand Total</Text>
+                            <Text style={styles.grandTotalValue}>₹{finalAmount.toFixed(2)}</Text>
+                        </View>
+                    </View>
+
+                    {/* Checkout Action Card */}
+                    <View style={styles.checkoutActionCard}>
+                        <View style={styles.bottomBarInfo}>
+                            <Text style={styles.bottomTotalLabel}>Total Amount</Text>
+                            <Text style={styles.bottomTotalValue}>₹{finalAmount.toFixed(2)}</Text>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.placeOrderBtn}
+                            onPress={handlePlaceOrder}
+                            disabled={loading}
+                            activeOpacity={0.85}
+                        >
+                            {loading ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.placeOrderBtnText}>
+                                    {paymentMode === 'ONLINE' ? 'Pay Now' : 'Place Order'}
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -461,7 +505,7 @@ export default function CheckoutScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: LIGHT_BG },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: LIGHT_BG },
-    
+
     // Header
     header: {
         flexDirection: 'row', alignItems: 'center',
@@ -471,10 +515,10 @@ const styles = StyleSheet.create({
     },
     backBtn: { padding: 4, marginRight: 8 },
     headerTitle: { fontSize: 18, fontWeight: '800', color: NAVY },
-    
+
     // Layout
     pageContainer: { maxWidth: 680, width: '100%', alignSelf: 'center', padding: 16, paddingBottom: 32 },
-    
+
     // Cards
     card: {
         backgroundColor: '#fff', borderRadius: 16, padding: 18, marginBottom: 16,
@@ -484,14 +528,14 @@ const styles = StyleSheet.create({
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     row: { flexDirection: 'row', alignItems: 'center' },
     cardTitle: { fontSize: 16, fontWeight: '800', color: NAVY, marginLeft: 10 },
-    
+
     // Address
     changeText: { color: RED, fontWeight: '700', fontSize: 14 },
     addressBox: { backgroundColor: '#f8fafc', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#e2e8f0' },
     addressName: { fontSize: 15, fontWeight: '700', color: NAVY, marginBottom: 6 },
     addressText: { fontSize: 13, color: '#475569', lineHeight: 20 },
     addressPhone: { fontSize: 13, fontWeight: '700', color: '#334155', marginTop: 8 },
-    
+
     // Items
     itemsCountText: { fontSize: 13, fontWeight: '600', color: '#64748b' },
     itemRow: { flexDirection: 'row', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
@@ -501,7 +545,7 @@ const styles = StyleSheet.create({
     itemMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     itemQty: { fontSize: 13, color: '#64748b', fontWeight: '600' },
     itemPrice: { fontSize: 16, fontWeight: '800', color: NAVY },
-    
+
     // Coupons
     couponInputBox: { flexDirection: 'row', alignItems: 'center' },
     couponInput: { flex: 1, height: 48, borderWidth: 1.5, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 16, backgroundColor: '#f8fafc', fontSize: 15, fontWeight: '600', color: NAVY },
@@ -517,7 +561,7 @@ const styles = StyleSheet.create({
     miniCoupon: { backgroundColor: '#eff6ff', borderWidth: 1.5, borderColor: '#bfdbfe', borderRadius: 10, padding: 12, marginRight: 12, width: 220 },
     miniCouponCode: { fontSize: 14, fontWeight: '800', color: '#1d4ed8', marginBottom: 4 },
     miniCouponDesc: { fontSize: 12, color: '#3b82f6', fontWeight: '500', lineHeight: 18 },
-    
+
     // Payment Options
     paymentOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 12, marginBottom: 12, backgroundColor: '#fff' },
     paymentOptionSelected: { borderColor: RED, backgroundColor: '#fff5f5' },
@@ -526,7 +570,7 @@ const styles = StyleSheet.create({
     radioIn: { width: 10, height: 10, borderRadius: 5, backgroundColor: RED },
     paymentText: { fontSize: 15, fontWeight: '800', color: NAVY, marginBottom: 3 },
     paymentSub: { fontSize: 12, color: '#64748b', fontWeight: '500' },
-    
+
     // Price Details
     priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
     priceLabel: { fontSize: 14, color: '#64748b', fontWeight: '600' },
@@ -536,7 +580,7 @@ const styles = StyleSheet.create({
     divider: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 14 },
     grandTotalLabel: { fontSize: 16, fontWeight: '800', color: NAVY },
     grandTotalValue: { fontSize: 20, fontWeight: '900', color: NAVY },
-    
+
     // Checkout Action Card
     checkoutActionCard: { backgroundColor: '#fff', borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center', shadowColor: '#64748b', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 4, borderWidth: 1, borderColor: '#f1f5f9' },
     bottomBarInfo: { flex: 1 },

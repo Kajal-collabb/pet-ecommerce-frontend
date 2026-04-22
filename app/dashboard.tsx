@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
     View, StyleSheet, SafeAreaView, Image,
     ScrollView, Dimensions, Text,
-    FlatList, ActivityIndicator, Alert, TouchableOpacity, useWindowDimensions, Platform
+    FlatList, ActivityIndicator, Alert, TouchableOpacity, useWindowDimensions, Platform, TextInput
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NavBar from './components/nav';
@@ -22,7 +22,9 @@ export default function DashboardPage() {
     const [topSelling, setTopSelling] = useState([]);
     const [topSellingLoading, setTopSellingLoading] = useState(true);
     const [addingToBagId, setAddingToBagId] = useState(null);
-
+    const [email, setEmail] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+    const [statusMessage, setStatusMessage] = useState('');
     const addToBag = async (productId) => {
         setAddingToBagId(productId);
         try {
@@ -77,7 +79,30 @@ export default function DashboardPage() {
             setLoading(false);
         }
     };
+    const handleSubscribe = async () => {
+        if (!email || !email.includes('@')) {
+            if (Platform.OS === 'web') window.alert("Please enter a valid email.");
+            return;
+        }
 
+        setSubmitting(true);
+        setStatusMessage('');
+
+        try {
+            // Calling your specific endpoint
+            const response = await api.post(`/email/subscribe?email=${email}`);
+
+            if (response.status === 200) {
+                setStatusMessage("You have been subscribed successfully.");
+                setEmail(''); // Clear the input
+            }
+        } catch (error) {
+            console.error("Subscription Error:", error);
+            setStatusMessage("Failed to subscribe. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
     const fetchTopSelling = async () => {
         try {
             const session = await AsyncStorage.getItem("user_session");
@@ -129,13 +154,20 @@ export default function DashboardPage() {
             onPress={() => handleCategoryPress(item)}
             activeOpacity={0.7}
         >
-            <View style={styles.categoryCircle}>
+            <View style={[
+                styles.categoryCircle,
+                {
+                    width: isMobile ? 100 : 120,
+                    height: isMobile ? 100 : 120,
+                    borderRadius: isMobile ? 50 : 70,
+                }
+            ]}>
                 <Image
                     source={{ uri: item.photoUrl }}
                     style={styles.categoryImage}
                 />
             </View>
-            <Text style={styles.categoryLabel}>{item.name}</Text>
+            <Text style={[styles.categoryLabel, { fontSize: isMobile ? 13 : 16 }]}>{item.name}</Text>
         </TouchableOpacity>
     );
 
@@ -172,8 +204,8 @@ export default function DashboardPage() {
                     </View>
                 </View>
 
-                <TouchableOpacity 
-                    style={styles.addCartBtn} 
+                <TouchableOpacity
+                    style={styles.addCartBtn}
                     onPress={() => addToBag(item.id)}
                     disabled={addingToBagId === item.id}
                 >
@@ -194,16 +226,28 @@ export default function DashboardPage() {
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Hero Banner Area */}
                 <View style={[styles.bannerContainer, isMobile && { marginHorizontal: 15 }]}>
-                    <Image
-                        source={require('../assets/pug2.png')}
-                        style={[styles.heroImage, isMobile && { height: 180 }]}
-                        resizeMode="cover"
-                    />
+
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => router.push('/cat')}
+                    >
+                        <Image
+                            source={require('../assets/pug2.png')}
+                            style={[styles.heroImage, isMobile && { height: 180 }]}
+                            resizeMode="cover"
+                        />
+                    </TouchableOpacity>
+
                 </View>
 
                 {/* Categories Section */}
                 <View style={styles.sectionContainer}>
-                    <Text style={styles.sectionTitle}>Shop by Category</Text>
+                    <Text style={[
+                        styles.sectionTitle,
+                        { fontSize: isMobile ? 22 : 28 }
+                    ]}>
+                        Shop by Category
+                    </Text>
                     {loading ? (
                         <ActivityIndicator color="#ff724c" style={{ marginVertical: 20 }} />
                     ) : (
@@ -220,7 +264,7 @@ export default function DashboardPage() {
 
                 {/* Top Selling Section */}
                 <View style={styles.sectionContainer}>
-                    <Text style={styles.sectionTitle}>Top Selling Products</Text>
+                    <Text style={[styles.sectionTitle, { fontSize: isMobile ? 22 : 28 }]}>Top Selling Products</Text>
                     {topSellingLoading ? (
                         <ActivityIndicator color="#ff724c" style={{ marginVertical: 20 }} />
                     ) : (
@@ -234,9 +278,48 @@ export default function DashboardPage() {
                         />
                     )}
                 </View>
+                {/* Newsletter Footer Section */}
+                <View style={styles.footerContainer}>
+                    <View style={styles.footerContent}>
+                        <View style={styles.footerTextContainer}>
+                            <Text style={styles.footerTitle}>Stay in the Loop 🐾</Text>
+                            <Text style={styles.footerSubtitle}>
+                                Get pet care tips, new arrivals, and exclusive offers straight to your inbox.
+                            </Text>
+                        </View>
 
+                        <View style={styles.subscribeRow}>
+                            <TextInput
+                                style={styles.emailInput}
+                                placeholder="Enter your email"
+                                placeholderTextColor="#9ca3af"
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                            />
+                            <TouchableOpacity
+                                style={[styles.subscribeBtn, submitting && { opacity: 0.7 }]}
+                                onPress={handleSubscribe}
+                                disabled={submitting}
+                            >
+                                {submitting ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.subscribeBtnText}>Subscribe</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        {statusMessage ? (
+                            <Text style={[styles.statusText, statusMessage.includes("successfully") ? { color: '#4ade80' } : { color: '#f87171' }]}>
+                                {statusMessage}
+                            </Text>
+                        ) : null}
+                    </View>
+                </View>
                 {/* Placeholder for more content */}
-                <View style={{ height: 100 }} />
+                <View />
             </ScrollView>
         </SafeAreaView>
     );
@@ -270,6 +353,71 @@ const styles = StyleSheet.create({
     sectionContainer: {
         marginTop: 25,
         paddingHorizontal: 15,
+    },
+    footerContainer: {
+        backgroundColor: '#1a2744',
+        paddingTop: 50,
+        paddingBottom: 100, // This replaces the whitespace and keeps things centered
+        marginTop: 40,
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30
+    },
+    footerContent: {
+        paddingHorizontal: 20,
+        alignItems: 'center',
+    },
+    footerTextContainer: {
+        alignItems: 'center',
+        marginBottom: 25,
+    },
+    footerTitle: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#fff',
+        marginBottom: 10,
+    },
+    footerSubtitle: {
+        fontSize: 14,
+        color: '#d1d5db',
+        textAlign: 'center',
+        maxWidth: 400,
+        lineHeight: 20,
+    },
+    subscribeRow: {
+        flexDirection: 'row',
+        width: '100%',
+        maxWidth: 500,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+        elevation: 5,
+    },
+    emailInput: {
+        flex: 1,
+        paddingHorizontal: 15,
+        fontSize: 16,
+        color: '#1a2744',
+    },
+    subscribeBtn: {
+        backgroundColor: '#dc2626', // Deep Red
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 8,
+        justifyContent: 'center',
+    },
+    subscribeBtnText: {
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: 14,
+    },
+    statusText: {
+        marginTop: 15,
+        fontSize: 14,
+        fontWeight: '600',
     },
     sectionTitle: {
         fontSize: 28,
