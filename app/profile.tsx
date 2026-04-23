@@ -7,7 +7,7 @@ import { ArrowLeft, User, MapPin, ShoppingBag, Lock, ChevronRight, Mail, Phone }
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import ResetPasswordModal from './ResetPasswordModal';
-
+import { StatusBar } from 'react-native';
 const NAVY = '#1a2744';
 const RED = '#dc2626';
 
@@ -137,7 +137,11 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f7f8fa' },
+    container: {
+        flex: 1,
+        backgroundColor: '#f7f8fa',
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
+    },
     header: {
         flexDirection: 'row', alignItems: 'center',
         paddingHorizontal: 16, paddingVertical: 14,

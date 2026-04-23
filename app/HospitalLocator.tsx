@@ -4,7 +4,7 @@ import {
     TouchableOpacity, ActivityIndicator, SafeAreaView,
     Platform, useWindowDimensions, Alert, Linking
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Navigation, Phone, MessageCircle, Star } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
@@ -15,7 +15,7 @@ const HospitalLocator = () => {
     const router = useRouter();
     const { width: windowWidth } = useWindowDimensions();
     const isMobile = windowWidth < 768;
-
+    const { type } = useLocalSearchParams();
     const [hospitals, setHospitals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [fetchingNearby, setFetchingNearby] = useState(false);
@@ -175,7 +175,9 @@ const HospitalLocator = () => {
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                         <ArrowLeft size={24} color="#1a2744" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Vetcare</Text>
+                    <Text style={styles.headerTitle}>
+                        {type === 'grooming' ? 'Grooming' : 'Vetcare'}
+                    </Text>
                 </View>
             </View>
 

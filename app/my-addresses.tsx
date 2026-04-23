@@ -7,7 +7,7 @@ import { ArrowLeft, MapPin, Home } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import api from '../utils/api';
-
+import { StatusBar, Platform } from 'react-native';
 const NAVY = '#1a2744';
 const RED = '#dc2626';
 
@@ -107,7 +107,11 @@ export default function MyAddressesScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f7f8fa' },
+    container: {
+        flex: 1,
+        backgroundColor: '#f7f8fa',
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
+    },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     header: {
         flexDirection: 'row', alignItems: 'center',

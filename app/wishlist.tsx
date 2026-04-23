@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, Image, ScrollView,
-    TouchableOpacity, ActivityIndicator, SafeAreaView, Alert, Platform, useWindowDimensions
+    TouchableOpacity, ActivityIndicator, SafeAreaView, Alert, Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Heart, Trash2, ShoppingBag } from 'lucide-react-native';
@@ -10,16 +10,12 @@ import api from '../utils/api';
 
 const NAVY = '#1a2744';
 const RED = '#dc2626';
-
+import { StatusBar } from 'react-native';
 export default function WishlistScreen() {
-    const { width } = useWindowDimensions();
-    const isMobile = width < 768;
-
     const router = useRouter();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [removingId, setRemovingId] = useState(null);
-    const [addingToBagId, setAddingToBagId] = useState(null);
 
     useEffect(() => {
         fetchWishlist();
@@ -27,7 +23,7 @@ export default function WishlistScreen() {
 
     const getToken = async () => {
         const session = await AsyncStorage.getItem('user_session');
-        return session ? JSON.parse(session).token : null;
+        return JSON.parse(session).token;
     };
 
     const fetchWishlist = async () => {
@@ -36,7 +32,7 @@ export default function WishlistScreen() {
             const res = await api.get('/wishlist/all?page=0&size=50', {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setItems(res.data.content || []);
+            setItems(res.data.content);
         } catch (error) {
             console.error('Wishlist fetch error:', error);
         } finally {
@@ -45,52 +41,18 @@ export default function WishlistScreen() {
     };
 
     const removeItem = async (Id) => {
-        const confirm = async () => {
-            console.log('Remove karne ki koshish:', Id);
-            setRemovingId(Id);
-            try {
-                const token = await getToken();
-                console.log('Token:', token);
-                const res = await api.delete(`/wishlist/${Id}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                console.log('Delete response:', res.status);
-                setItems(prev => prev.filter(item => item.id !== Id));
-            } catch (error) {
-                console.log('Delete error:', error.response?.status, error.response?.data);
-            } finally {
-                setRemovingId(null);
-            }
-        };
-
-        if (Platform.OS === 'web') {
-            if (window.confirm('Remove this item from wishlist?')) confirm();
-        } else {
-            Alert.alert('Remove Item', 'Remove this item from wishlist?', [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Remove', style: 'destructive', onPress: confirm }
-            ]);
-        }
-    };
-
-    const addToBag = async (productId) => {
-        setAddingToBagId(productId);
+        console.log('Remove karne ki koshish:', Id);
+        setRemovingId(Id);
         try {
             const token = await getToken();
-            const res = await api.post('/bag', { productId, quantity: 1 }, {
+            const res = await api.delete(`/wishlist/${Id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (res.status === 200 || res.status === 201) {
-                if (Platform.OS === 'web') window.alert("Added to Bag!");
-                else Alert.alert("Success", "Added to Bag!");
-            }
+            setItems(prev => prev.filter(item => item.id !== Id));
         } catch (error) {
-            console.error('Error adding to bag:', error);
-            const msg = error.response?.data?.message || "Failed to add to bag.";
-            if (Platform.OS === 'web') window.alert(msg);
-            else Alert.alert("Error", msg);
+            console.log('Delete error:', error.response?.status, error.response?.data);
         } finally {
-            setAddingToBagId(null);
+            setRemovingId(null);
         }
     };
 
@@ -156,7 +118,7 @@ export default function WishlistScreen() {
             ) : (
                 <ScrollView showsVerticalScrollIndicator={false}>
                     <View style={styles.pageContainer}>
-                        <View style={[styles.mainBox, isMobile && { padding: 12 }]}>
+                        <View style={styles.mainBox}>
                             <View style={styles.boxHeader}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                     <Heart size={20} color={RED} fill={RED} style={{ marginRight: 8 }} />
@@ -169,57 +131,47 @@ export default function WishlistScreen() {
                                 <View key={item.id} style={[styles.card, index === items.length - 1 && styles.lastCard]}>
 
                                     {/* Product Image */}
-                                <TouchableOpacity onPress={() => router.push(`/products/${item.productId}`)}>
-                                    <Image source={{ uri: item.productImage }} style={[styles.productImg, isMobile && { width: 90, height: 90, marginRight: 12 }]} />
-                                </TouchableOpacity>
-
-                                {/* Product Info */}
-                                <View style={styles.info}>
                                     <TouchableOpacity onPress={() => router.push(`/products/${item.productId}`)}>
-                                        <Text style={styles.productName} numberOfLines={2}>{item.productName}</Text>
+                                        <Image source={{ uri: item.productImage }} style={styles.productImg} />
                                     </TouchableOpacity>
 
-                                    <View style={styles.priceRow}>
-                                        <Text style={styles.price}>₹{item.price.toLocaleString('en-IN')}</Text>
-                                        <Text style={styles.actualPrice}>₹{item.actualPrice.toLocaleString('en-IN')}</Text>
-                                        <View style={styles.discountBadge}>
-                                            <Text style={styles.discountText}>{item.discount}% OFF</Text>
+                                    {/* Product Info */}
+                                    <View style={styles.info}>
+                                        <TouchableOpacity onPress={() => router.push(`/products/${item.productId}`)}>
+                                            <Text style={styles.productName} numberOfLines={2}>{item.productName}</Text>
+                                        </TouchableOpacity>
+
+                                        <View style={styles.priceRow}>
+                                            <Text style={styles.price}>₹{item.price.toLocaleString('en-IN')}</Text>
+                                            <Text style={styles.actualPrice}>₹{item.actualPrice.toLocaleString('en-IN')}</Text>
+                                            <View style={styles.discountBadge}>
+                                                <Text style={styles.discountText}>{item.discount}% OFF</Text>
+                                            </View>
+                                        </View>
+
+                                        {/* Buttons */}
+                                        <View style={styles.btnRow}>
+                                            <TouchableOpacity style={styles.addCartBtn}>
+                                                <ShoppingBag size={16} color="#fff" />
+                                                <Text style={styles.addCartText}>Add to Bag</Text>
+                                            </TouchableOpacity>
+
+                                            <TouchableOpacity
+                                                style={styles.removeBtn}
+                                                onPress={() => {
+                                                    console.log('Deleting id:', item.id);
+                                                    removeItem(item.id);
+                                                }}
+                                                disabled={removingId === item.id}
+                                            >
+                                                {removingId === item.id ? (
+                                                    <ActivityIndicator size="small" color={RED} />
+                                                ) : (
+                                                    <Trash2 size={20} color={RED} />
+                                                )}
+                                            </TouchableOpacity>
                                         </View>
                                     </View>
-
-                                    {/* Buttons */}
-                                    <View style={styles.btnRow}>
-                                        <TouchableOpacity 
-                                            style={styles.addCartBtn} 
-                                            onPress={() => addToBag(item.productId)}
-                                            disabled={addingToBagId === item.productId}
-                                        >
-                                            {addingToBagId === item.productId ? (
-                                                <ActivityIndicator size="small" color="#fff" />
-                                            ) : (
-                                                <>
-                                                    <ShoppingBag size={16} color="#fff" />
-                                                    <Text style={styles.addCartText}>Add to Bag</Text>
-                                                </>
-                                            )}
-                                        </TouchableOpacity>
-
-                                        <TouchableOpacity
-                                            style={styles.removeBtn}
-                                            onPress={() => {
-                                                console.log('Deleting id:', item.id);
-                                                removeItem(item.id);
-                                            }}
-                                            disabled={removingId === item.id}
-                                        >
-                                            {removingId === item.id ? (
-                                                <ActivityIndicator size="small" color={RED} />
-                                            ) : (
-                                                <Trash2 size={20} color={RED} />
-                                            )}
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
 
                                 </View>
                             ))}
@@ -233,7 +185,11 @@ export default function WishlistScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f2f3f5' },
+    container: {
+        flex: 1,
+        backgroundColor: '#f2f3f5',
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
+    },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
 
     header: {

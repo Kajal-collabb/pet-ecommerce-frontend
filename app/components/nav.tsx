@@ -8,9 +8,11 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ResetPasswordModal from '../ResetPasswordModal';
 import MobileSidebar from './MobileSidebar';
+
 export default function NavBar() {
     const { width } = useWindowDimensions();
     const isMobile = width < 768;
+
     const router = useRouter();
     const [showReset, setShowReset] = useState(false);
     const [email, setEmail] = useState("");
@@ -107,10 +109,10 @@ export default function NavBar() {
 
             <View style={styles.menuItems}>
                 <TouchableOpacity><Text style={styles.menuTextRed}>Sale</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => router.push('/HospitalLocator')}>
+                <TouchableOpacity onPress={() => router.push('/HospitalLocator?type=vet')}>
                     <Text style={styles.menuTextRed}>Vetcare</Text>
                 </TouchableOpacity>
-                <TouchableOpacity><Text style={styles.menuTextRed}>Grooming</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push('/HospitalLocator?type=grooming')}><Text style={styles.menuTextRed}>Grooming</Text></TouchableOpacity>
             </View>
 
             <View style={styles.searchContainer}>

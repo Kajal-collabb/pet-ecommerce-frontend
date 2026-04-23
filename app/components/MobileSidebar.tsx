@@ -6,8 +6,8 @@ export default function MobileSidebar({ visible, onClose, onLogout, router }) {
 
     const menuItems = [
         { title: 'Sale', route: '/sale', color: '#cf1313', icon: <Tag size={20} color="#cf1313" /> },
-        { title: 'Vetcare', route: '/HospitalLocator', color: '#1a2744', icon: <ShieldPlus size={20} color="#1a2744" /> },
-        { title: 'Grooming', route: '/grooming', color: '#1a2744', icon: <Scissors size={20} color="#1a2744" /> },
+        { title: 'Vetcare', route: '/HospitalLocator?type=vet', color: '#1a2744', icon: <ShieldPlus size={20} color="#1a2744" /> },
+        { title: 'Grooming', route: '/HospitalLocator?type=grooming', color: '#1a2744', icon: <Scissors size={20} color="#1a2744" /> },
     ];
 
     return (

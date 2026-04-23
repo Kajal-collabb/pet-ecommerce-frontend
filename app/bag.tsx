@@ -8,7 +8,7 @@ import { ArrowLeft, Trash2, Plus, Minus, ShoppingBag, ChevronRight, Tag, Truck, 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import api from '../utils/api';
-
+import { StatusBar } from 'react-native';
 const NAVY = '#1a2744';
 const RED = '#dc2626';
 const LIGHT_RED = '#fff1f1';
@@ -324,7 +324,11 @@ export default function BagScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: GRAY_BG },
+    container: {
+        flex: 1,
+        backgroundColor: '#f2f3f5',
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
+    },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: GRAY_BG },
 
     /* Header */

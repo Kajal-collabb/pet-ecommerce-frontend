@@ -71,7 +71,17 @@ const HospitalDetails = () => {
                     <Text style={styles.advanceText}>Advance: ₹{item.bookingAdvance}</Text>
 
                     <View style={styles.buttonGroup}>
-                        <TouchableOpacity style={[styles.bookSmallBtn, { backgroundColor: "red" }]}>
+                        {/* Book Now Button - Navigation added here */}
+                        <TouchableOpacity
+                            style={[styles.bookSmallBtn, { backgroundColor: "red" }]}
+                            onPress={() => router.push({
+                                pathname: `/hospital/booking/${item.hospitalId}`, // Hospital ID dynamic yahan se aayegi
+                                params: {
+                                    serviceId: item.id,
+                                    serviceName: item.name
+                                }
+                            })}
+                        >
                             <Text style={styles.bookSmallText}>Book Now</Text>
                         </TouchableOpacity>
 
